@@ -13,9 +13,9 @@ const App = () => {
     const [executeDone, setExecuteDone] = useState(null);
     const [arrayParameter, setArrayParameter] = useState({});
     const [showDataFunction, setShowDataFunction] = useState('');
-
     const [testGreet, setTestGreet] = useState('');
 
+    
     const greetChangeHandler = (e) => {
         setTestGreet(e.target.value);
     }
@@ -31,6 +31,7 @@ const App = () => {
                 const a = await signer.getAddress();
                 setSigner(signer);
                 setDefaultAccount(a)
+                setShortAccount(a.slice(0,5) + "...." + a.slice(37,42));
             }
 
             catch(error){
@@ -60,7 +61,7 @@ const App = () => {
                 }
                 console.log(data);
 
-                const response = await fetch('http://localhost:8080' , {
+                const response = await fetch('http://localhost:8080', {
                     method : "POST", 
                     body : JSON.stringify(data),
                     headers : {
@@ -69,8 +70,8 @@ const App = () => {
                 });
 
                 const ct = await response.json();
-                console.log(ct.functionElement);
-                setContractElement(ct.functionElement);
+                console.log(ct);
+                setContractElement(ct);
 
                 return
             }
@@ -107,6 +108,10 @@ const App = () => {
         const onlyValueInputs = Object.values(arrayParameter);
         const params = param.map((data) => data.type + ' ' + data.name) || [];           
         let paramsInFunctions = params;
+        console.log(arrayParameter);
+
+        // will fix if it input of not address
+        if (param.length !== onlyValueInputs.length) return;
 
         if (params.lenght > 1) paramsInFunctions.join(', ');
 
@@ -147,7 +152,6 @@ const App = () => {
             console.log(paramsInFunctions);
             const ABI = [`function ${method}(${paramsInFunctions})`];
             const iface = new utils.Interface(ABI);
-            
             const encodeData = iface.encodeFunctionData(`${method}`, onlyValueInputs);
 
             const tx = await signer.sendTransaction({
@@ -190,7 +194,7 @@ const App = () => {
                                     e, 
                                     method.function, 
                                     method.parameter, 
-                                    arrayParameter,
+                                    arrayParameter || [],
                                     method.stateMutability,
                                     method.outputs
                                 )
@@ -210,7 +214,7 @@ const App = () => {
         ));
     }
     catch {
-        eachFunctionElement = 'The address is invalid';
+        eachFunctionElement = contractElement;
     }
 
     
@@ -250,8 +254,8 @@ const App = () => {
                     onChange={addressChangeGHandler}
                 />
                 {/* <div>increment : 0xFebd4eDc1d914669A40BE5221852feCdBD066DF5</div>
-                <div>greeting : 0x235BE3396C94942Dccd7788C32E65f23154A8ED6</div>
-                <div>erc20Test : 0x7c87561b129f46998fc9Afb53F98b7fdaB68696f</div> */}
+                <div>greeting : 0x235BE3396C94942Dccd7788C32E65f23154A8ED6</div> */}
+                <div>erc20Test : 0x7c87561b129f46998fc9Afb53F98b7fdaB68696f</div>
                 <button type='submit'>submit</button>
                 <div>{executeDone}</div>
             </form>

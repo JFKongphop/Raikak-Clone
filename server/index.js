@@ -16,7 +16,9 @@ app.use(cors());
 
 const scrapeContract = async (address) =>{
     const etherContractUrl = `https://goerli.etherscan.io/address/${address}#code`
-    
+    const mainTage = 'main#content';
+    const bytecodeTage = 'div div#verifiedbytecode2';
+    const abiTage = 'div#dividcode div pre#js-copytextarea2';
     const contractElement = {
         bytecode: '',
         abi: ''
@@ -25,14 +27,14 @@ const scrapeContract = async (address) =>{
     try{
         const { data } = await axios.get(etherContractUrl);
         const $ = cheerio.load(data);
-        const item = $('main#content');
+        const item = $(mainTage);
 
         if (
-            $(item).find('div div#verifiedbytecode2').length
-            && $(item).find('div#dividcode div pre#js-copytextarea2').length
+            $(item).find(bytecodeTage).length
+            && $(item).find(abiTage).length
         ) {
-            contractElement.bytecode = $(item).find('div div#verifiedbytecode2').text();
-            contractElement.abi = JSON.parse($(item).find('div#dividcode div pre#js-copytextarea2').text());
+            contractElement.bytecode = $(item).find(bytecodeTage).text();
+            contractElement.abi = JSON.parse($(item).find(abiTage).text());
 
             let functionElement = [];
             contractElement.abi.filter((abiElement) => 
@@ -46,20 +48,13 @@ const scrapeContract = async (address) =>{
                     }
                 )
             );
-            
-            const allElement = {
-                functionElement,
-                abi: contractElement.abi
-            }
 
-            return allElement;
+            return functionElement;
         }
 
         else {
             return {error : 'error'};
         }
-
-        
     }
     
     catch (err){
