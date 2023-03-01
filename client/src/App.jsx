@@ -165,48 +165,55 @@ const App = () => {
     };
 
 
-    const eachFunctionElement = contractElement.map((method, index) => (
-        <div key={index}>  
-             <div>
-                <h3>{method.function}</h3>
-                <form>
-                    {
-                        method.parameter.map((param, index) => (
-                            <div key={index}>
-                                <label>{param.name}</label>
-                                <input 
-                                    name={`${param.name}`}
-                                    placeholder={`${param.type}`}
-                                    onChange={parameterHandleChange}
-                                />
-                            </div>
-                        ))
-                    }
-                    <button 
-                        onClick={
-                            (e) => submitTransaction(
-                                e, 
-                                method.function, 
-                                method.parameter, 
-                                arrayParameter,
-                                method.stateMutability,
-                                method.outputs
-                            )
-                        }
-                    >
+    let eachFunctionElement;
+    try {
+        eachFunctionElement = contractElement.map((method, index) => (
+            <div key={index}>  
+                <div>
+                    <h3>{method.function}</h3>
+                    <form>
                         {
-                            method.stateMutability === 'view' 
-                            || method.stateMutability === 'pure'
-                            ? 'Read' : 'Write'
-                        } {method.function}
-                    </button>
-                </form>
-                {/* it show all of component */}
-                <div>{showDataFunction}</div>
-             </div>
-        </div>
-    ));
+                            method.parameter.map((param, index) => (
+                                <div key={index}>
+                                    <label>{param.name}</label>
+                                    <input 
+                                        name={`${param.name}`}
+                                        placeholder={`${param.type}`}
+                                        onChange={parameterHandleChange}
+                                    />
+                                </div>
+                            ))
+                        }
+                        <button 
+                            onClick={
+                                (e) => submitTransaction(
+                                    e, 
+                                    method.function, 
+                                    method.parameter, 
+                                    arrayParameter,
+                                    method.stateMutability,
+                                    method.outputs
+                                )
+                            }
+                        >
+                            {
+                                method.stateMutability === 'view' 
+                                || method.stateMutability === 'pure'
+                                ? 'Read' : 'Write'
+                            } {method.function}
+                        </button>
+                    </form>
+                    {/* it show all of component */}
+                    <div>{showDataFunction}</div>
+                </div>
+            </div>
+        ));
+    }
+    catch {
+        eachFunctionElement = 'The address is invalid';
+    }
 
+    
     const demoTest = async (event) => {
         event.preventDefault()
         const ABI = [`function setGreeting (string _greeting)`];
