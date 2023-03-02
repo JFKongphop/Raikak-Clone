@@ -11,16 +11,19 @@ const App = () => {
     const [signer, setSigner] = useState(null);
     const [shortAccount, setShortAccount] = useState(null);
     const [executeDone, setExecuteDone] = useState(null);
-    const [arrayParameter, setArrayParameter] = useState({});
+    const [arrayArgument, setArrayArgument] = useState({});
     const [showDataFunction, setShowDataFunction] = useState('');
     const [testGreet, setTestGreet] = useState('');
 
-    
+
     const greetChangeHandler = (e) => {
         setTestGreet(e.target.value);
     }
     
 
+    /**
+     * connect wallet on frontend
+     */
     const connectWalletHandler = async () => {
 		if (window.ethereum && defaultAccount == null) {
             try{     
@@ -46,11 +49,23 @@ const App = () => {
 	}
 
 
-    const addressChangeGHandler = (event) => {
+    /**
+     * 
+     * @param {*} event 
+     * get address of contract 
+     */
+    const addressChangeHandler = (event) => {
         setAddress(event.target.value);
     };
 
 
+    /**
+     * 
+     * @param {*} event
+     * submit the contract address 
+     * @returns 
+     * contract json from abi of contract address
+     */
     const onSubmitAddress = async (event) => {
         event.preventDefault();
 
@@ -61,6 +76,7 @@ const App = () => {
                 }
                 console.log(data);
 
+                //network test http://172.20.10.3:8080/
                 const response = await fetch('http://localhost:8080', {
                     method : "POST", 
                     body : JSON.stringify(data),
@@ -85,36 +101,91 @@ const App = () => {
     };
 
 
-
+    /**
+     * 
+     * @param {*} event 
+     * get the inputs from different of function abi
+     */
     const parameterHandleChange = (event) => {
-        setArrayParameter({
-            ...arrayParameter,
+        setArrayArgument({
+            ...arrayArgument,
             [event.target.name]: event.target.value
         });
     }
 
 
+    /**
+     * 
+     * @param {*} params 
+     * array of params in abi
+     * @returns 
+     * array that contain the address param
+     */
+    const filterIndexAddress = (params) => {
+        const indexAddress = []
+        params.forEach((element, index) => {
+            if (element === 'address') {
+                indexAddress.push(index);
+            }
+        });
+
+        return indexAddress;
+    }
+
+
+    /**
+     * 
+     * @param {*} event event to submit
+     * @param {*} method name of function in abi
+     * @param {*} param array of parameter in abi
+     * @param {*} arrayArgument array of argument from inputs
+     * @param {*} type type of function in abi
+     * @param {*} outputs type of outputs afer execute
+     * @returns data from read function or address of transaction execution
+     */
     const submitTransaction = async (
         event, 
         method, 
         param, 
-        arrayParameter, 
+        arrayArgument, 
         type, 
         outputs
     ) => {
         event.preventDefault();
         setShowDataFunction('');
 
-        const onlyValueInputs = Object.values(arrayParameter);
-        const params = param.map((data) => data.type + ' ' + data.name) || [];           
-        let paramsInFunctions = params;
-        console.log(arrayParameter);
+        // check user fill complete of all inputs box
+        const nameParams = param.map((data) => data.name) || [];
+        const sortParam = {};
+        for (const param of nameParams) {
+            sortParam[param] = arrayArgument[param]; 
+        }
+        const onlyValueInputs = Object.values(sortParam);
+        if (param.length !== onlyValueInputs.length) return setShowDataFunction('Please fill complete of inputs');
 
-        // will fix if it input of not address
-        if (param.length !== onlyValueInputs.length) return;
 
-        if (params.lenght > 1) paramsInFunctions.join(', ');
+        // check inputs box that fill address that is valid address
+        const onlyParamType = param.map((data) => data.type) || [];  
+        const indexAddress = filterIndexAddress(onlyParamType);
+        const lengthOfIndexAddress = indexAddress.length;
+        const statusIsAddress = []
+        for (let index = 0; index < lengthOfIndexAddress; index++) {
+            statusIsAddress.push(
+                utils.isAddress(
+                    onlyValueInputs[indexAddress[index]]
+                )
+            );
+        }
+        const filterStatusAddress = statusIsAddress.filter((data) => data === true);
+        if (statusIsAddress.length !== filterStatusAddress.length) return setShowDataFunction('Address is invalid');
+        
 
+        // set argument for function in abi
+        const paramsInFunctions = param.map((data) => data.type + ' ' + data.name) || [];  
+        if (paramsInFunctions.length > 1) paramsInFunctions.join(', ');
+
+
+        // check readable function in abi
         if (type === 'view' || type === 'pure') {
             const ABI = [`function ${method}(${paramsInFunctions})`];
             const iface = new utils.Interface(ABI);
@@ -144,7 +215,7 @@ const App = () => {
                 }
             }
             
-            setArrayParameter([]);
+            setArrayArgument([]);
             return;
         }
 
@@ -163,7 +234,7 @@ const App = () => {
             await tx.wait();
             console.log('done');
             setShowDataFunction(`done ${tx.hash}`)
-            setArrayParameter([]);
+            setArrayArgument([]);
             return;
         }
     };
@@ -194,7 +265,7 @@ const App = () => {
                                     e, 
                                     method.function, 
                                     method.parameter, 
-                                    arrayParameter || [],
+                                    arrayArgument || [],
                                     method.stateMutability,
                                     method.outputs
                                 )
@@ -251,7 +322,7 @@ const App = () => {
                 <input 
                     type="text" 
                     value={address}
-                    onChange={addressChangeGHandler}
+                    onChange={addressChangeHandler}
                 />
                 {/* <div>increment : 0xFebd4eDc1d914669A40BE5221852feCdBD066DF5</div>
                 <div>greeting : 0x235BE3396C94942Dccd7788C32E65f23154A8ED6</div> */}
