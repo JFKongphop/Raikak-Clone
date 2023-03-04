@@ -21,6 +21,7 @@ const App = () => {
     }
     
 
+
     /**
      * connect wallet on frontend
      */
@@ -49,27 +50,26 @@ const App = () => {
 	}
 
 
+
     /**
      * 
-     * @param {*} event 
-     * get address of contract 
+     * @param {*} event - get address of contract 
      */
     const addressChangeHandler = (event) => {
         setAddress(event.target.value);
     };
 
 
+
     /**
      * 
-     * @param {*} event
-     * submit the contract address 
-     * @returns 
-     * contract json from abi of contract address
+     * @param {*} event - submit the contract address 
+     * @returns - contract json from abi of contract address
      */
     const onSubmitAddress = async (event) => {
         event.preventDefault();
 
-        if (address) {
+        if (address && utils.isAddress(address)) {
             try {
                 let data = {
                     address: address
@@ -101,10 +101,10 @@ const App = () => {
     };
 
 
+
     /**
      * 
-     * @param {*} event 
-     * get the inputs from different of function abi
+     * @param {*} event - get the inputs from different of function abi
      */
     const parameterHandleChange = (event) => {
         setArrayArgument({
@@ -114,14 +114,13 @@ const App = () => {
     }
 
 
+
     /**
      * 
-     * @param {*} params 
-     * array of params in abi
-     * @returns 
-     * array that contain the address param
+     * @param {*} params - array of params in abi
+     * @returns - array that contain the index of address param
      */
-    const filterIndexAddress = (params) => {
+    const findIndexAddress = (params) => {
         const indexAddress = []
         params.forEach((element, index) => {
             if (element === 'address') {
@@ -133,15 +132,34 @@ const App = () => {
     }
 
 
+
     /**
      * 
-     * @param {*} event event to submit
-     * @param {*} method name of function in abi
-     * @param {*} param array of parameter in abi
-     * @param {*} arrayArgument array of argument from inputs
-     * @param {*} type type of function in abi
-     * @param {*} outputs type of outputs afer execute
-     * @returns data from read function or address of transaction execution
+     * @param {*} params 
+     * @returns - array that contain the index of uint param
+     */
+    const findIndexUint = (params) => {
+        const indexUint = [];
+        params.forEach((element, index) => {
+            if (element.includes('uint')) {
+                indexUint.push(index);
+            }
+        });
+
+        return indexUint;
+    }
+
+
+
+    /**
+     * 
+     * @param {*} event - event to submit
+     * @param {*} method - name of function in abi
+     * @param {*} param - array of parameter in abi
+     * @param {*} arrayArgument - array of argument from inputs
+     * @param {*} type - type of function in abi
+     * @param {*} outputs - type of outputs afer execute
+     * @returns - data from read function or address of transaction execution
      */
     const submitTransaction = async (
         event, 
@@ -155,18 +173,23 @@ const App = () => {
         setShowDataFunction('');
 
         // check user fill complete of all inputs box
+        // solve this input that undefined
         const nameParams = param.map((data) => data.name) || [];
         const sortParam = {};
         for (const param of nameParams) {
             sortParam[param] = arrayArgument[param]; 
         }
         const onlyValueInputs = Object.values(sortParam);
-        if (param.length !== onlyValueInputs.length) return setShowDataFunction('Please fill complete of inputs');
+        const checkInputsUndefined = onlyValueInputs.filter((data) => data !== undefined);
+        if (param.length !== checkInputsUndefined.length) {
+            return setShowDataFunction('Please fill complete of inputs');
+        }
 
 
         // check inputs box that fill address that is valid address
         const onlyParamType = param.map((data) => data.type) || [];  
-        const indexAddress = filterIndexAddress(onlyParamType);
+
+        const indexAddress = findIndexAddress(onlyParamType);
         const lengthOfIndexAddress = indexAddress.length;
         const statusIsAddress = []
         for (let index = 0; index < lengthOfIndexAddress; index++) {
@@ -177,7 +200,25 @@ const App = () => {
             );
         }
         const filterStatusAddress = statusIsAddress.filter((data) => data === true);
-        if (statusIsAddress.length !== filterStatusAddress.length) return setShowDataFunction('Address is invalid');
+        if (statusIsAddress.length !== filterStatusAddress.length) {
+            return setShowDataFunction('Address is invalid');
+        }
+
+
+        // check invalid number inputs
+        const indexUint = findIndexUint(onlyParamType);
+        const lengthOfIndexUint = indexUint.length;
+        const statusIsUint = [];
+        for (let index = 0; index < lengthOfIndexUint; index++) {
+            statusIsUint.push(
+                !isNaN(onlyValueInputs[indexUint[index]])
+            );
+        }
+        const filterStatusUint = statusIsUint.filter((data) => data === true);
+        if (statusIsUint.length !== filterStatusUint.length) {
+            console.log('Integer is invalid');
+            return setShowDataFunction('Integer is invalid');
+        }
         
 
         // set argument for function in abi
@@ -220,7 +261,7 @@ const App = () => {
         }
 
         else {
-            console.log(paramsInFunctions);
+            // console.log(paramsInFunctions);
             const ABI = [`function ${method}(${paramsInFunctions})`];
             const iface = new utils.Interface(ABI);
             const encodeData = iface.encodeFunctionData(`${method}`, onlyValueInputs);
