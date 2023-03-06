@@ -14,10 +14,34 @@ const App = () => {
     const [arrayArgument, setArrayArgument] = useState({});
     const [showDataFunction, setShowDataFunction] = useState('');
     const [testGreet, setTestGreet] = useState('');
+    const [eachFunction, setEachFunction] = useState('');
 
 
     const greetChangeHandler = (e) => {
         setTestGreet(e.target.value);
+    }
+
+    const dropdownChangeHandler = (e) => {
+        setArrayArgument([]);
+        setShowDataFunction('');
+        setEachFunction(e.target.value)
+    }
+
+
+
+    /**
+     * dropdown tag for show each function when select it 
+    */
+    const filterFunction = contractElement.filter((data) => {return data.function === eachFunction});
+    const functionNames = contractElement.map((data) => data.function)
+    const DropdownFunctionElement = () => {
+        return (
+            <select value={eachFunction || 'None'} onChange={dropdownChangeHandler}>
+                {functionNames.map((name) => (
+                    <option key={name} value={name} >{name}</option>
+                ))}
+            </select>
+        )
     }
     
 
@@ -97,6 +121,8 @@ const App = () => {
             }
         }
 
+        else return setShowDataFunction('Address is invalid');
+
         return;
     };
 
@@ -172,8 +198,13 @@ const App = () => {
         event.preventDefault();
         setShowDataFunction('');
 
+        
+        // check we connect the rpc
+        if (!provider) return setShowDataFunction('Please connect wallet');
+
         // check user fill complete of all inputs box
         // solve this input that undefined
+        // sort param reference by param in abi
         const nameParams = param.map((data) => data.name) || [];
         const sortParam = {};
         for (const param of nameParams) {
@@ -281,9 +312,10 @@ const App = () => {
     };
 
 
+    // if want to show of all function use contractElement instead filterFunction
     let eachFunctionElement;
     try {
-        eachFunctionElement = contractElement.map((method, index) => (
+        eachFunctionElement = filterFunction.map((method, index) => (
             <div key={index}>  
                 <div>
                     <h3>{method.function}</h3>
@@ -319,7 +351,6 @@ const App = () => {
                             } {method.function}
                         </button>
                     </form>
-                    {/* it show all of component */}
                     <div>{showDataFunction}</div>
                 </div>
             </div>
@@ -364,6 +395,7 @@ const App = () => {
                     type="text" 
                     value={address}
                     onChange={addressChangeHandler}
+                    placeholder={showDataFunction}
                 />
                 {/* <div>increment : 0xFebd4eDc1d914669A40BE5221852feCdBD066DF5</div>
                 <div>greeting : 0x235BE3396C94942Dccd7788C32E65f23154A8ED6</div> */}
@@ -371,6 +403,7 @@ const App = () => {
                 <button type='submit'>submit</button>
                 <div>{executeDone}</div>
             </form>
+            {functionNames.length > 0 ? <  DropdownFunctionElement/> : ''}
             <form>
                 <p>dummy test</p>
                 <label>SET GREET</label>
