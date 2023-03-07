@@ -13,13 +13,9 @@ const App = () => {
     const [executeDone, setExecuteDone] = useState(null);
     const [arrayArgument, setArrayArgument] = useState({});
     const [showDataFunction, setShowDataFunction] = useState('');
-    const [testGreet, setTestGreet] = useState('');
     const [eachFunction, setEachFunction] = useState('');
+    const [inputByMsg, setInputByMsg] = useState('');
 
-
-    const greetChangeHandler = (e) => {
-        setTestGreet(e.target.value);
-    }
 
     const dropdownChangeHandler = (e) => {
         setArrayArgument([]);
@@ -175,6 +171,33 @@ const App = () => {
         return indexUint;
     }
 
+    const onChangeEtherInput = (e) => {
+        console.log(e.target.value);
+        setInputByMsg(e.target.value);
+    }
+
+
+    const submitEtherByValue = async (e, method) => {
+        e.preventDefault();
+
+        const ABI = [`function ${method}()`];
+        const iface = new utils.Interface(ABI);
+        const encodeData = iface.encodeFunctionData(`${method}`);
+
+        const tx = await signer.sendTransaction({
+            to : address,
+            // data: encodeData,
+            gasLimit: 50000,
+            value : ethers.utils.parseEther(inputByMsg, '18')
+        });
+
+        await tx.wait();
+        console.log('done');
+        setShowDataFunction(`done ${tx.hash}`)
+        setArrayArgument([]);
+        return;
+    }
+ 
 
 
     /**
@@ -291,6 +314,34 @@ const App = () => {
             return;
         }
 
+
+        else if (
+            param.length === 0 
+            && 
+            (
+                type === 'payable' 
+                || type === 'nonpayable'
+            )
+        ) {
+            if (isNaN(inputByMsg) || inputByMsg < 0 || !inputByMsg) return setShowDataFunction('Invalid input')
+            const ABI = [`function ${method}()`];
+            const iface = new utils.Interface(ABI);
+            const encodeData = iface.encodeFunctionData(`${method}`);
+
+            const tx = await signer.sendTransaction({
+                to: address,
+                data: encodeData,
+                value: utils.parseEther(inputByMsg)
+            })
+
+            await tx.wait();
+            console.log('done');
+            setShowDataFunction(`done ${tx.hash}`)
+            setInputByMsg(0);
+            return;
+        }
+
+
         else {
             // console.log(paramsInFunctions);
             const ABI = [`function ${method}(${paramsInFunctions})`];
@@ -319,38 +370,56 @@ const App = () => {
             <div key={index}>  
                 <div>
                     <h3>{method.function}</h3>
-                    <form>
-                        {
-                            method.parameter.map((param, index) => (
-                                <div key={index}>
-                                    <label>{param.name}</label>
+                        <form>
+                            {
+                                method.parameter.length === 0 
+                                && 
+                                (
+                                    method.stateMutability === 'payable'
+                                    || method.stateMutability === 'nonpayable'
+                                )
+                                ?
+                                <div>
+                                    <label >Ether</label>
                                     <input 
-                                        name={`${param.name}`}
-                                        placeholder={`${param.type}`}
-                                        onChange={parameterHandleChange}
+                                        type='number'
+                                        step='0.1'
+                                        placeholder='ether'
+                                        onChange={onChangeEtherInput}
                                     />
                                 </div>
-                            ))
-                        }
-                        <button 
-                            onClick={
-                                (e) => submitTransaction(
-                                    e, 
-                                    method.function, 
-                                    method.parameter, 
-                                    arrayArgument || [],
-                                    method.stateMutability,
-                                    method.outputs
-                                )
+                                :
+                                method.parameter.map((param, index) => (
+                                    <div key={index}>
+                                        <label>{param.name}</label>
+                                        <input 
+                                            type={param.type.includes('uint') ? 'number' : 'text'}
+                                            name={`${param.name}`}
+                                            placeholder={`${param.type}`}
+                                            onChange={parameterHandleChange}
+                                        />
+                                    </div>
+                                ))
                             }
-                        >
-                            {
-                                method.stateMutability === 'view' 
-                                || method.stateMutability === 'pure'
-                                ? 'Read' : 'Write'
-                            } {method.function}
-                        </button>
-                    </form>
+                            <button 
+                                onClick={
+                                    (e) => submitTransaction(
+                                        e, 
+                                        method.function, 
+                                        method.parameter, 
+                                        arrayArgument || [],
+                                        method.stateMutability,
+                                        method.outputs
+                                    )
+                                }
+                            >
+                                {
+                                    method.stateMutability === 'view' 
+                                    || method.stateMutability === 'pure'
+                                    ? 'Read' : 'Write'
+                                } {method.function}
+                            </button>
+                        </form>
                     <div>{showDataFunction}</div>
                 </div>
             </div>
@@ -358,24 +427,6 @@ const App = () => {
     }
     catch {
         eachFunctionElement = contractElement;
-    }
-
-    
-    const demoTest = async (event) => {
-        event.preventDefault()
-        const ABI = [`function setGreeting (string _greeting)`];
-        const iface = new utils.Interface(ABI);
-        const encodeData = iface.encodeFunctionData(`setGreeting`, [testGreet]);
-
-        const tx = await signer.sendTransaction({
-            to : '0x235BE3396C94942Dccd7788C32E65f23154A8ED6',
-            data : encodeData,
-            gasLimit: 50000
-        });
-
-        await tx.wait();
-        console.log('will return totalSupply');
-        setExecuteDone(tx.hash);
     }
 
 
@@ -400,19 +451,11 @@ const App = () => {
                 {/* <div>increment : 0xFebd4eDc1d914669A40BE5221852feCdBD066DF5</div>
                 <div>greeting : 0x235BE3396C94942Dccd7788C32E65f23154A8ED6</div> */}
                 <div>erc20Test : 0x7c87561b129f46998fc9Afb53F98b7fdaB68696f</div>
+                <div>smartFunding : 0x980306e668Fa1E4246e2AC86e06e12B67A5fD087</div>
                 <button type='submit'>submit</button>
                 <div>{executeDone}</div>
             </form>
             {functionNames.length > 0 ? <  DropdownFunctionElement/> : ''}
-            <form>
-                <p>dummy test</p>
-                <label>SET GREET</label>
-                <input 
-                    type='text'
-                    onChange={greetChangeHandler}
-                />
-                <button onClick={demoTest}>setGreeet</button>
-            </form>
             <div>{eachFunctionElement}</div>
         </div>
     )
