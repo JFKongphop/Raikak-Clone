@@ -315,14 +315,7 @@ const App = () => {
         }
 
 
-        else if (
-            param.length === 0 
-            && 
-            (
-                type === 'payable' 
-                || type === 'nonpayable'
-            )
-        ) {
+        else if (param.length === 0 && type === 'payable' /*|| type === 'nonpayable'*/) {
             if (isNaN(inputByMsg) || inputByMsg < 0 || !inputByMsg) return setShowDataFunction('Invalid input')
             const ABI = [`function ${method}()`];
             const iface = new utils.Interface(ABI);
@@ -376,7 +369,7 @@ const App = () => {
                                 && 
                                 (
                                     method.stateMutability === 'payable'
-                                    || method.stateMutability === 'nonpayable'
+                                    /*|| method.stateMutability === 'nonpayable'*/
                                 )
                                 ?
                                 <div>
@@ -455,7 +448,7 @@ const App = () => {
                 <button type='submit'>submit</button>
                 <div>{executeDone}</div>
             </form>
-            {functionNames.length > 0 ? <  DropdownFunctionElement/> : ''}
+            {functionNames.length > 0 && <  DropdownFunctionElement/>}
             <div>{eachFunctionElement}</div>
         </div>
     )
