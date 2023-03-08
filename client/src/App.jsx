@@ -2,6 +2,46 @@ import React, { useState, useEffect } from 'react';
 import { ethers, utils } from "ethers";
 
 
+const chainIdLists = [
+    {
+        name: 'Optimism',
+        id: 10
+    },
+    {
+        name: 'Arbitrum One',
+        id: 42161
+    },
+    {
+        name: 'Optimism Goerli',
+        id: 420
+    },
+    {
+        name: 'BSC',
+        id: 56
+    },
+    {
+        name: 'BSC-Testnet',
+        id: 97
+    },
+    {
+        name: 'Polygon',
+        id: 137
+    },
+    {
+        name: 'Polygon Mumbai',
+        id: 80001
+    },
+    {
+        name: 'ETH-Goerli',
+        id: 5
+    },
+    {
+        name: 'ETH',
+        id: 0
+    }
+]
+
+
 const App = () => {
     const [address, setAddress] = useState('');
     const [contractElement, setContractElement] = useState([]);
@@ -15,9 +55,29 @@ const App = () => {
     const [showDataFunction, setShowDataFunction] = useState('');
     const [eachFunction, setEachFunction] = useState('');
     const [inputByMsg, setInputByMsg] = useState('');
+    const [chainId, setChainId] = useState('');
+    const [connectChainId, setConnectChainId] = useState(0);
+    
+
+    const dropdownChainIdChangeHandler = (e) => {
+        setChainId(e.target.value);
+    }
 
 
-    const dropdownChangeHandler = (e) => {
+    const DropDownChain = () => {
+        return (
+            <select value={chainId} onChange={dropdownChainIdChangeHandler}>
+                <option>None</option>
+                {chainIdLists.map((data) => (
+                    <option key={data.id} value={data.id} >{data.name}</option>
+                ))}
+            </select>
+        )
+    }
+
+
+    
+    const dropdownFnChangeHandler = (e) => {
         setArrayArgument([]);
         setShowDataFunction('');
         setEachFunction(e.target.value)
@@ -32,7 +92,8 @@ const App = () => {
     const functionNames = contractElement.map((data) => data.function)
     const DropdownFunctionElement = () => {
         return (
-            <select value={eachFunction || 'None'} onChange={dropdownChangeHandler}>
+            <select value={eachFunction || 'None'} onChange={dropdownFnChangeHandler}>
+                <option>None</option>
                 {functionNames.map((name) => (
                     <option key={name} value={name} >{name}</option>
                 ))}
@@ -55,6 +116,15 @@ const App = () => {
                 const a = await signer.getAddress();
                 setSigner(signer);
                 setDefaultAccount(a)
+                const network = await provider.getNetwork();
+                if (+network.chainId === 1) {
+                    setConnectChainId(+network.chainId - 1);
+                }
+
+                else {
+                    setConnectChainId(+network.chainId)
+                }
+                                
                 setShortAccount(a.slice(0,5) + "...." + a.slice(37,42));
             }
 
@@ -89,15 +159,20 @@ const App = () => {
     const onSubmitAddress = async (event) => {
         event.preventDefault();
 
+        if (!chainId) return setShowDataFunction('Please selected chain');
+        if (+chainId !== +connectChainId) return setShowDataFunction('Please select chainId same of you network')
         if (address && utils.isAddress(address)) {
             try {
                 let data = {
-                    address: address
+                    address: address,
+                    chainId: +chainId
                 }
                 console.log(data);
 
                 //network test http://172.20.10.3:8080/
-                const response = await fetch('http://localhost:8080', {
+                // http://localhost:8080
+                // https://goerli-api.jfkongphop.repl.co
+                const response = await fetch('https://goerli-api.jfkongphop.repl.co', {
                     method : "POST", 
                     body : JSON.stringify(data),
                     headers : {
@@ -174,28 +249,6 @@ const App = () => {
     const onChangeEtherInput = (e) => {
         console.log(e.target.value);
         setInputByMsg(e.target.value);
-    }
-
-
-    const submitEtherByValue = async (e, method) => {
-        e.preventDefault();
-
-        const ABI = [`function ${method}()`];
-        const iface = new utils.Interface(ABI);
-        const encodeData = iface.encodeFunctionData(`${method}`);
-
-        const tx = await signer.sendTransaction({
-            to : address,
-            // data: encodeData,
-            gasLimit: 50000,
-            value : ethers.utils.parseEther(inputByMsg, '18')
-        });
-
-        await tx.wait();
-        console.log('done');
-        setShowDataFunction(`done ${tx.hash}`)
-        setArrayArgument([]);
-        return;
     }
  
 
@@ -292,12 +345,18 @@ const App = () => {
             });
 
             if (outputs === 'string') {
+                console.log(response);
                 console.log(utils.toUtf8String(response));
                 setShowDataFunction(utils.toUtf8String(response));
             }
 
+            else if (outputs === 'address') {
+                setShowDataFunction(response)
+            }
+
             else {
                 try {
+                    console.log(response);
                     const bigNumber = ethers.BigNumber.from(response);
                     const decimalNumber = bigNumber.toString();
 
@@ -433,6 +492,9 @@ const App = () => {
                     {shortAccount ?  shortAccount : "connect"}
                 </button>
 			</div>
+            <div>
+                <DropDownChain />
+            </div>
             <form onSubmit={onSubmitAddress}>
                 <label htmlFor="address">Address</label>
                 <input 
@@ -440,11 +502,12 @@ const App = () => {
                     value={address}
                     onChange={addressChangeHandler}
                     placeholder={showDataFunction}
+                    style={{width: '400px'}}
                 />
                 {/* <div>increment : 0xFebd4eDc1d914669A40BE5221852feCdBD066DF5</div>
                 <div>greeting : 0x235BE3396C94942Dccd7788C32E65f23154A8ED6</div> */}
-                <div>erc20Test : 0x7c87561b129f46998fc9Afb53F98b7fdaB68696f</div>
-                <div>smartFunding : 0x980306e668Fa1E4246e2AC86e06e12B67A5fD087</div>
+                 <div>erc20Test : 0x7c87561b129f46998fc9Afb53F98b7fdaB68696f</div>
+                {/*<div>smartFunding : 0x980306e668Fa1E4246e2AC86e06e12B67A5fD087</div> */}
                 <button type='submit'>submit</button>
                 <div>{executeDone}</div>
             </form>
