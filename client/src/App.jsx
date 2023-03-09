@@ -182,6 +182,7 @@ const App = () => {
 
                 const ct = await response.json();
                 console.log(ct);
+                if (ct.error === 'error') return setShowDataFunction(ct.error);
                 setContractElement(ct);
 
                 return
@@ -512,6 +513,7 @@ const App = () => {
                 <div>{executeDone}</div>
             </form>
             {functionNames.length > 0 && <  DropdownFunctionElement/>}
+            {showDataFunction === 'error' && <div>Contract address is not found in this chain</div>}
             <div>{eachFunctionElement}</div>
         </div>
     )
