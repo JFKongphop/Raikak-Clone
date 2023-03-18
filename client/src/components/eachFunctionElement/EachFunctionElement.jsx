@@ -1,3 +1,7 @@
+import Button from "../UI/button/Button";
+import Input from "../UI/input/Input";
+
+
 const EachFunctionElement = (props) => {
         // if want to show of all function use contractElement instead filterFunction
         // will useMemo to control when some stage is not change
@@ -34,11 +38,12 @@ const EachFunctionElement = (props) => {
                                                 name={`${param.name}`}
                                                 placeholder={`${param.type}`}
                                                 onChange={props.parameterHandleChange}
+                                                style={{width: param.type === 'address'  ? '350px' : ''}}
                                             />
                                         </div>
                                     ))
                                 }
-                                <button 
+                                <Button
                                     onClick={
                                         (e) => props.submitTransaction(
                                             e, 
@@ -55,7 +60,7 @@ const EachFunctionElement = (props) => {
                                         || method.stateMutability === 'pure'
                                         ? 'Read' : 'Write'
                                     } {method.function}
-                                </button>
+                                </Button>
                             </form>
                         <div>{props.showDataFunction}</div>
                     </div>

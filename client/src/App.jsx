@@ -8,6 +8,8 @@ import EachFunctionElement from './components/eachFunctionElement/EachFunctionEl
 import { checkAddressIndexIsValid } from './utils/argumentHandle/checkAddressIndexIsValid';
 import { checkUintIndexIsValid } from './utils/argumentHandle/checkUintIndexIsValid';
 import { sortArgumentsInput } from './utils/argumentHandle/sortArgumentsInput';
+import Button from './components/UI/button/Button';
+import './App.css'
 
 
 
@@ -263,47 +265,49 @@ const App = () => {
 
     return (
         <div>
-            <ConnectWallet/>
             <div>
-                <DropDownChain 
-                    onChangeDropdown={dropdownChainIdChangeHandler}
-                    chainId={chainId}
+                <ConnectWallet/>
+                <div>
+                    <DropDownChain 
+                        onChangeDropdown={dropdownChainIdChangeHandler}
+                        chainId={chainId}
+                    />
+                </div>
+                <form onSubmit={onSubmitAddress}>
+                    <label htmlFor="address">Address</label>
+                    <input 
+                        type="text" 
+                        value={address}
+                        onChange={addressChangeHandler}
+                        placeholder={showDataFunction || 'search address contract'}
+                        style={{width: '350px'}}
+                    />
+                    {/* <div>increment : 0xFebd4eDc1d914669A40BE5221852feCdBD066DF5</div>
+                    <div>greeting : 0x235BE3396C94942Dccd7788C32E65f23154A8ED6</div> */}
+                    {/* <div>erc20Test : 0x7c87561b129f46998fc9Afb53F98b7fdaB68696f</div> */}
+                    {/*<div>smartFunding : 0x980306e668Fa1E4246e2AC86e06e12B67A5fD087</div> */}
+                    <Button type={'submit'}>Submit</Button>
+                </form>
+                {
+                    functionNames.length > 0 
+                    && 
+                    <DropdownFunctionElement
+                        functionNames={functionNames}
+                        eachFunction={eachFunction}
+                        onChangeFn={dropdownFnChangeHandler}
+                    />
+                }
+                {showDataFunction === 'error' && <div>Contract address is not found in this chain</div>}
+                <EachFunctionElement 
+                    filterFunction={filterFunction}
+                    arrayArgument={arrayArgument} 
+                    showDataFunction={showDataFunction} 
+                    contractElement={contractElement}
+                    onChangeEtherInput={onChangeEtherInput} 
+                    parameterHandleChange={parameterHandleChange}
+                    submitTransaction={submitTransaction}
                 />
             </div>
-            <form onSubmit={onSubmitAddress}>
-                <label htmlFor="address">Address</label>
-                <input 
-                    type="text" 
-                    value={address}
-                    onChange={addressChangeHandler}
-                    placeholder={showDataFunction}
-                    style={{width: '400px'}}
-                />
-                {/* <div>increment : 0xFebd4eDc1d914669A40BE5221852feCdBD066DF5</div>
-                <div>greeting : 0x235BE3396C94942Dccd7788C32E65f23154A8ED6</div> */}
-                 <div>erc20Test : 0x7c87561b129f46998fc9Afb53F98b7fdaB68696f</div>
-                {/*<div>smartFunding : 0x980306e668Fa1E4246e2AC86e06e12B67A5fD087</div> */}
-                <button type='submit'>submit</button>
-            </form>
-            {
-                functionNames.length > 0 
-                && 
-                <DropdownFunctionElement
-                    functionNames={functionNames}
-                    eachFunction={eachFunction}
-                    onChangeFn={dropdownFnChangeHandler}
-                />
-            }
-            {showDataFunction === 'error' && <div>Contract address is not found in this chain</div>}
-            <EachFunctionElement 
-                filterFunction={filterFunction}
-                arrayArgument={arrayArgument} 
-                showDataFunction={showDataFunction} 
-                contractElement={contractElement}
-                onChangeEtherInput={onChangeEtherInput} 
-                parameterHandleChange={parameterHandleChange}
-                submitTransaction={submitTransaction}
-            />
         </div>
     )
 }
