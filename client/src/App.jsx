@@ -1,82 +1,41 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { ethers, utils } from "ethers";
+import DropDownChain from './components/dropdown/DropdownChain';
+import ConnectWallet from './components/connectWallet/ConnectWallet';
+import DropdownFunctionElement from './components/dropdown/DropdownFunctionElement';
+import WalletContext from './context/WalletContext';
+import EachFunctionElement from './components/eachFunctionElement/EachFunctionElement';
+import { checkAddressIndexIsValid } from './utils/argumentHandle/checkAddressIndexIsValid';
+import { checkUintIndexIsValid } from './utils/argumentHandle/checkUintIndexIsValid';
+import { sortArgumentsInput } from './utils/argumentHandle/sortArgumentsInput';
 
 
-const chainIdLists = [
-    {
-        name: 'Optimism',
-        id: 10
-    },
-    {
-        name: 'Arbitrum One',
-        id: 42161
-    },
-    {
-        name: 'Optimism Goerli',
-        id: 420
-    },
-    {
-        name: 'BSC',
-        id: 56
-    },
-    {
-        name: 'BSC-Testnet',
-        id: 97
-    },
-    {
-        name: 'Polygon',
-        id: 137
-    },
-    {
-        name: 'Polygon Mumbai',
-        id: 80001
-    },
-    {
-        name: 'ETH-Goerli',
-        id: 5
-    },
-    {
-        name: 'ETH',
-        id: 0
-    }
-]
 
 
 const App = () => {
     const [address, setAddress] = useState('');
     const [contractElement, setContractElement] = useState([]);
-    const [errorMessage, setErrorMessage] = useState(null);
-	const [defaultAccount, setDefaultAccount] = useState(null);
-	const [provider, setProvider] = useState(null);
-    const [signer, setSigner] = useState(null);
-    const [shortAccount, setShortAccount] = useState(null);
-    const [executeDone, setExecuteDone] = useState(null);
     const [arrayArgument, setArrayArgument] = useState({});
     const [showDataFunction, setShowDataFunction] = useState('');
     const [eachFunction, setEachFunction] = useState('');
     const [inputByMsg, setInputByMsg] = useState('');
     const [chainId, setChainId] = useState('');
-    const [connectChainId, setConnectChainId] = useState(0);
+
+
+
+    const { 
+        provider, 
+        signer, 
+        connectChainId, 
+    } = useContext(WalletContext);
     
+
 
     const dropdownChainIdChangeHandler = (e) => {
         setChainId(e.target.value);
     }
 
 
-    const DropDownChain = () => {
-        return (
-            <select value={chainId} onChange={dropdownChainIdChangeHandler}>
-                <option>None</option>
-                {chainIdLists.map((data) => (
-                    <option key={data.id} value={data.id} >{data.name}</option>
-                ))}
-            </select>
-        )
-    }
-
-
-    
     const dropdownFnChangeHandler = (e) => {
         setArrayArgument([]);
         setShowDataFunction('');
@@ -90,56 +49,7 @@ const App = () => {
     */
     const filterFunction = contractElement.filter((data) => {return data.function === eachFunction});
     const functionNames = contractElement.map((data) => data.function)
-    const DropdownFunctionElement = () => {
-        return (
-            <select value={eachFunction || 'None'} onChange={dropdownFnChangeHandler}>
-                <option>None</option>
-                {functionNames.map((name) => (
-                    <option key={name} value={name} >{name}</option>
-                ))}
-            </select>
-        )
-    }
     
-
-
-    /**
-     * connect wallet on frontend
-     */
-    const connectWalletHandler = async () => {
-		if (window.ethereum && defaultAccount == null) {
-            try{     
-                const provider = new ethers.providers.Web3Provider(window.ethereum)
-                await provider.send("eth_requestAccounts", []);
-                setProvider(provider);
-                const signer = provider.getSigner();
-                const a = await signer.getAddress();
-                setSigner(signer);
-                setDefaultAccount(a)
-                const network = await provider.getNetwork();
-                if (+network.chainId === 1) {
-                    setConnectChainId(+network.chainId - 1);
-                }
-
-                else {
-                    setConnectChainId(+network.chainId)
-                }
-                                
-                setShortAccount(a.slice(0,5) + "...." + a.slice(37,42));
-            }
-
-            catch(error){
-                setErrorMessage(error.message);
-            }
-		} 
-
-        else if (!window.ethereum){
-			console.log('Need to install MetaMask');
-			setErrorMessage('Please install MetaMask browser extension to interact');
-		}
-	}
-
-
 
     /**
      * 
@@ -148,7 +58,6 @@ const App = () => {
     const addressChangeHandler = (event) => {
         setAddress(event.target.value);
     };
-
 
 
     /**
@@ -212,41 +121,6 @@ const App = () => {
     }
 
 
-
-    /**
-     * 
-     * @param {*} params - array of params in abi
-     * @returns - array that contain the index of address param
-     */
-    const findIndexAddress = (params) => {
-        const indexAddress = []
-        params.forEach((element, index) => {
-            if (element === 'address') {
-                indexAddress.push(index);
-            }
-        });
-
-        return indexAddress;
-    }
-
-
-
-    /**
-     * 
-     * @param {*} params 
-     * @returns - array that contain the index of uint param
-     */
-    const findIndexUint = (params) => {
-        const indexUint = [];
-        params.forEach((element, index) => {
-            if (element.includes('uint')) {
-                indexUint.push(index);
-            }
-        });
-
-        return indexUint;
-    }
-
     const onChangeEtherInput = (e) => {
         console.log(e.target.value);
         setInputByMsg(e.target.value);
@@ -279,55 +153,26 @@ const App = () => {
         // check we connect the rpc
         if (!provider) return setShowDataFunction('Please connect wallet');
 
-        // check user fill complete of all inputs box
-        // solve this input that undefined
-        // sort param reference by param in abi
-        const nameParams = param.map((data) => data.name) || [];
-        const sortParam = {};
-        for (const param of nameParams) {
-            sortParam[param] = arrayArgument[param]; 
-        }
-        const onlyValueInputs = Object.values(sortParam);
+        // sort argument input
+        const onlyValueInputs = Object.values(sortArgumentsInput(param, arrayArgument));
         const checkInputsUndefined = onlyValueInputs.filter((data) => data !== undefined);
+        const onlyParamType = param.map((data) => data.type) || []; 
+
+        // check all of the input is valid
         if (param.length !== checkInputsUndefined.length) {
             return setShowDataFunction('Please fill complete of inputs');
         }
 
-
-        // check inputs box that fill address that is valid address
-        const onlyParamType = param.map((data) => data.type) || [];  
-
-        const indexAddress = findIndexAddress(onlyParamType);
-        const lengthOfIndexAddress = indexAddress.length;
-        const statusIsAddress = []
-        for (let index = 0; index < lengthOfIndexAddress; index++) {
-            statusIsAddress.push(
-                utils.isAddress(
-                    onlyValueInputs[indexAddress[index]]
-                )
-            );
-        }
-        const filterStatusAddress = statusIsAddress.filter((data) => data === true);
-        if (statusIsAddress.length !== filterStatusAddress.length) {
+        // check the input address is valid
+        if (checkAddressIndexIsValid(param, onlyValueInputs)) {
             return setShowDataFunction('Address is invalid');
         }
 
-
-        // check invalid number inputs
-        const indexUint = findIndexUint(onlyParamType);
-        const lengthOfIndexUint = indexUint.length;
-        const statusIsUint = [];
-        for (let index = 0; index < lengthOfIndexUint; index++) {
-            statusIsUint.push(
-                !isNaN(onlyValueInputs[indexUint[index]])
-            );
-        }
-        const filterStatusUint = statusIsUint.filter((data) => data === true);
-        if (statusIsUint.length !== filterStatusUint.length) {
+        // check the input uint is valid
+        if (checkUintIndexIsValid(onlyParamType, onlyValueInputs)) {
             console.log('Integer is invalid');
             return setShowDataFunction('Integer is invalid');
         }
-        
 
         // set argument for function in abi
         const paramsInFunctions = param.map((data) => data.type + ' ' + data.name) || [];  
@@ -416,85 +261,14 @@ const App = () => {
     };
 
 
-    // if want to show of all function use contractElement instead filterFunction
-    let eachFunctionElement;
-    try {
-        eachFunctionElement = filterFunction.map((method, index) => (
-            <div key={index}>  
-                <div>
-                    <h3>{method.function}</h3>
-                        <form>
-                            {
-                                method.parameter.length === 0 
-                                && 
-                                (
-                                    method.stateMutability === 'payable'
-                                    /*|| method.stateMutability === 'nonpayable'*/
-                                )
-                                ?
-                                <div>
-                                    <label >Ether</label>
-                                    <input 
-                                        type='number'
-                                        step='0.1'
-                                        placeholder='ether'
-                                        onChange={onChangeEtherInput}
-                                    />
-                                </div>
-                                :
-                                method.parameter.map((param, index) => (
-                                    <div key={index}>
-                                        <label>{param.name}</label>
-                                        <input 
-                                            type={param.type.includes('uint') ? 'number' : 'text'}
-                                            name={`${param.name}`}
-                                            placeholder={`${param.type}`}
-                                            onChange={parameterHandleChange}
-                                        />
-                                    </div>
-                                ))
-                            }
-                            <button 
-                                onClick={
-                                    (e) => submitTransaction(
-                                        e, 
-                                        method.function, 
-                                        method.parameter, 
-                                        arrayArgument || [],
-                                        method.stateMutability,
-                                        method.outputs
-                                    )
-                                }
-                            >
-                                {
-                                    method.stateMutability === 'view' 
-                                    || method.stateMutability === 'pure'
-                                    ? 'Read' : 'Write'
-                                } {method.function}
-                            </button>
-                        </form>
-                    <div>{showDataFunction}</div>
-                </div>
-            </div>
-        ));
-    }
-    catch {
-        eachFunctionElement = contractElement;
-    }
-
-
     return (
         <div>
-			<div className='connectBtn'>
-                <button 
-                    className="connectMeta" 
-                    onClick={connectWalletHandler}
-                >
-                    {shortAccount ?  shortAccount : "connect"}
-                </button>
-			</div>
+            <ConnectWallet/>
             <div>
-                <DropDownChain />
+                <DropDownChain 
+                    onChangeDropdown={dropdownChainIdChangeHandler}
+                    chainId={chainId}
+                />
             </div>
             <form onSubmit={onSubmitAddress}>
                 <label htmlFor="address">Address</label>
@@ -510,11 +284,26 @@ const App = () => {
                  <div>erc20Test : 0x7c87561b129f46998fc9Afb53F98b7fdaB68696f</div>
                 {/*<div>smartFunding : 0x980306e668Fa1E4246e2AC86e06e12B67A5fD087</div> */}
                 <button type='submit'>submit</button>
-                <div>{executeDone}</div>
             </form>
-            {functionNames.length > 0 && <  DropdownFunctionElement/>}
+            {
+                functionNames.length > 0 
+                && 
+                <DropdownFunctionElement
+                    functionNames={functionNames}
+                    eachFunction={eachFunction}
+                    onChangeFn={dropdownFnChangeHandler}
+                />
+            }
             {showDataFunction === 'error' && <div>Contract address is not found in this chain</div>}
-            <div>{eachFunctionElement}</div>
+            <EachFunctionElement 
+                filterFunction={filterFunction}
+                arrayArgument={arrayArgument} 
+                showDataFunction={showDataFunction} 
+                contractElement={contractElement}
+                onChangeEtherInput={onChangeEtherInput} 
+                parameterHandleChange={parameterHandleChange}
+                submitTransaction={submitTransaction}
+            />
         </div>
     )
 }
