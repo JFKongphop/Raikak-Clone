@@ -62,7 +62,14 @@ const EachFunctionElement = (props) => {
                                     } {method.function}
                                 </Button>
                             </form>
-                        <div>{props.showDataFunction}</div>
+                        {
+                            !props.isLoadingFunction 
+                            && <div>{props.showDataFunction}</div>
+                        }
+                        {
+                            props.isLoadingFunction
+                            && <div>Loading...</div>
+                        }
                     </div>
                 </div>
             ));

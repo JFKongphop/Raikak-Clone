@@ -10,6 +10,7 @@ export const WalletProvider = (props) => {
     const [connectChainId, setConnectChainId] = useState(0);
     const [shortAccount, setShortAccount] = useState(null);
     const [errorMessage, setErrorMessage] = useState(null);
+    const [currentNetwork, setCurrentNetwork] = useState('Please connnect wallet')
     
 
     const connectWalletHandler = async () => {
@@ -23,12 +24,15 @@ export const WalletProvider = (props) => {
                 setSigner(signer);
                 setDefaultAccount(a)
                 const network = await provider.getNetwork();
+                console.log(network);
 
                 if (+network.chainId === 1) {
+                    setCurrentNetwork(`ETH Mainnet | ${+network.chainId - 1}`);
                     setConnectChainId(+network.chainId - 1);
                 }
 
                 else {
+                    setCurrentNetwork(`${network.name} | ${+network.chainId}`);
                     setConnectChainId(+network.chainId)
                 }
                                 
@@ -49,6 +53,7 @@ export const WalletProvider = (props) => {
     const contextValue = {
         provider: provider,
         signer: signer,
+        currentNetwork: currentNetwork,
         connectChainId: connectChainId,
         shortAccount: shortAccount,
         errorMessage: errorMessage,

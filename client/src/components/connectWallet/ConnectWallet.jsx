@@ -2,7 +2,7 @@ import { useState, useContext } from "react";
 import WalletContext from "../../context/WalletContext"
 
 const ConnectWallet = () => {
-    const { shortAccount, errorMessage, onConnectWallet } = useContext(WalletContext);
+    const { shortAccount, errorMessage, currentNetwork, onConnectWallet } = useContext(WalletContext);
 
     return (
         <div className='connectBtn'>
@@ -12,6 +12,7 @@ const ConnectWallet = () => {
             >
                 {shortAccount ?  shortAccount : "connect" || errorMessage}
             </button>
+            <div>{currentNetwork}</div>
         </div>
     )
 }

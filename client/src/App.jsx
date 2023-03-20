@@ -22,6 +22,9 @@ const App = () => {
     const [eachFunction, setEachFunction] = useState('');
     const [inputByMsg, setInputByMsg] = useState('');
     const [chainId, setChainId] = useState('');
+    const [formResponse, setFormResponse] = useState('');
+    const [isLoadingAddress, setIsLoadingAddress] = useState(false);
+    const [isLoadingFunction, setIsLoadingFunction] = useState(false);
 
 
 
@@ -70,10 +73,12 @@ const App = () => {
     const onSubmitAddress = async (event) => {
         event.preventDefault();
 
-        if (!chainId) return setShowDataFunction('Please selected chain');
-        if (+chainId !== +connectChainId) return setShowDataFunction('Please select chainId same of you network')
+        if (!chainId) return setFormResponse('Please selected chain');
+        if (+chainId !== +connectChainId) return setFormResponse('Please select chainId same of you network')
         if (address && utils.isAddress(address)) {
             try {
+                setIsLoadingAddress(true);
+                setFormResponse('');
                 let data = {
                     address: address,
                     chainId: +chainId
@@ -93,18 +98,19 @@ const App = () => {
 
                 const ct = await response.json();
                 console.log(ct);
-                if (ct.error === 'error') return setShowDataFunction(ct.error);
+                if (ct.error === 'error') return setFormResponse(ct.error);
                 setContractElement(ct);
-
+                setIsLoadingAddress(false);
                 return
             }
 
             catch (err) {
                 console.log(err);
             }
+
         }
 
-        else return setShowDataFunction('Address is invalid');
+        else return setFormResponse('Address is invalid');
 
         return;
     };
@@ -153,7 +159,7 @@ const App = () => {
 
         
         // check we connect the rpc
-        if (!provider) return setShowDataFunction('Please connect wallet');
+        if (!provider) return setFormResponse('Please connect wallet');
 
         // sort argument input
         const onlyValueInputs = Object.values(sortArgumentsInput(param, arrayArgument));
@@ -162,18 +168,18 @@ const App = () => {
 
         // check all of the input is valid
         if (param.length !== checkInputsUndefined.length) {
-            return setShowDataFunction('Please fill complete of inputs');
+            return setFormResponse('Please fill complete of inputs');
         }
 
         // check the input address is valid
         if (checkAddressIndexIsValid(param, onlyValueInputs)) {
-            return setShowDataFunction('Address is invalid');
+            return setFormResponse('Address is invalid');
         }
 
         // check the input uint is valid
         if (checkUintIndexIsValid(onlyParamType, onlyValueInputs)) {
             console.log('Integer is invalid');
-            return setShowDataFunction('Integer is invalid');
+            return setFormResponse('Integer is invalid');
         }
 
         // set argument for function in abi
@@ -183,6 +189,7 @@ const App = () => {
 
         // check readable function in abi
         if (type === 'view' || type === 'pure') {
+            setIsLoadingFunction(true);
             const ABI = [`function ${method}(${paramsInFunctions})`];
             const iface = new utils.Interface(ABI);
             const encodeData = iface.encodeFunctionData(`${method}`, onlyValueInputs);
@@ -193,8 +200,6 @@ const App = () => {
             });
 
             if (outputs === 'string') {
-                console.log(response);
-                console.log(utils.toUtf8String(response));
                 setShowDataFunction(utils.toUtf8String(response));
             }
 
@@ -208,7 +213,6 @@ const App = () => {
                     const bigNumber = ethers.BigNumber.from(response);
                     const decimalNumber = bigNumber.toString();
 
-                    console.log(decimalNumber);
                     setShowDataFunction(decimalNumber);
                 }
 
@@ -218,11 +222,13 @@ const App = () => {
             }
             
             setArrayArgument([]);
+            setIsLoadingFunction(false);
             return;
         }
 
 
         else if (param.length === 0 && type === 'payable' /*|| type === 'nonpayable'*/) {
+            setIsLoadingFunction(true);
             if (isNaN(inputByMsg) || inputByMsg < 0 || !inputByMsg) return setShowDataFunction('Invalid input')
             const ABI = [`function ${method}()`];
             const iface = new utils.Interface(ABI);
@@ -238,12 +244,14 @@ const App = () => {
             console.log('done');
             setShowDataFunction(`done ${tx.hash}`)
             setInputByMsg(0);
+            setIsLoadingFunction(false);
             return;
         }
 
 
         else {
             // console.log(paramsInFunctions);
+            setIsLoadingFunction(true);
             const ABI = [`function ${method}(${paramsInFunctions})`];
             const iface = new utils.Interface(ABI);
             const encodeData = iface.encodeFunctionData(`${method}`, onlyValueInputs);
@@ -258,6 +266,7 @@ const App = () => {
             console.log('done');
             setShowDataFunction(`done ${tx.hash}`)
             setArrayArgument([]);
+            setIsLoadingFunction(false);
             return;
         }
     };
@@ -273,13 +282,14 @@ const App = () => {
                         chainId={chainId}
                     />
                 </div>
+                <br/>
                 <form onSubmit={onSubmitAddress}>
                     <label htmlFor="address">Address</label>
                     <input 
                         type="text" 
                         value={address}
                         onChange={addressChangeHandler}
-                        placeholder={showDataFunction || 'search address contract'}
+                        placeholder={'search address contract and select network'}
                         style={{width: '350px'}}
                     />
                     {/* <div>increment : 0xFebd4eDc1d914669A40BE5221852feCdBD066DF5</div>
@@ -287,26 +297,31 @@ const App = () => {
                     {/* <div>erc20Test : 0x7c87561b129f46998fc9Afb53F98b7fdaB68696f</div> */}
                     {/*<div>smartFunding : 0x980306e668Fa1E4246e2AC86e06e12B67A5fD087</div> */}
                     <Button type={'submit'}>Submit</Button>
+                    <p>{formResponse}</p>
                 </form>
-                {
-                    functionNames.length > 0 
-                    && 
-                    <DropdownFunctionElement
-                        functionNames={functionNames}
-                        eachFunction={eachFunction}
-                        onChangeFn={dropdownFnChangeHandler}
+                {!isLoadingAddress && <div>
+                    {
+                        functionNames.length > 0 
+                        && 
+                        <DropdownFunctionElement
+                            functionNames={functionNames}
+                            eachFunction={eachFunction}
+                            onChangeFn={dropdownFnChangeHandler}
+                        />
+                    }
+                    {formResponse === 'error' && <div>Contract address is not found in this chain</div>}
+                    <EachFunctionElement 
+                        filterFunction={filterFunction}
+                        arrayArgument={arrayArgument} 
+                        showDataFunction={showDataFunction} 
+                        contractElement={contractElement}
+                        isLoadingFunction={isLoadingFunction}
+                        onChangeEtherInput={onChangeEtherInput} 
+                        parameterHandleChange={parameterHandleChange}
+                        submitTransaction={submitTransaction}
                     />
-                }
-                {showDataFunction === 'error' && <div>Contract address is not found in this chain</div>}
-                <EachFunctionElement 
-                    filterFunction={filterFunction}
-                    arrayArgument={arrayArgument} 
-                    showDataFunction={showDataFunction} 
-                    contractElement={contractElement}
-                    onChangeEtherInput={onChangeEtherInput} 
-                    parameterHandleChange={parameterHandleChange}
-                    submitTransaction={submitTransaction}
-                />
+                </div>}
+                {isLoadingAddress && <p>Loading...</p>}
             </div>
         </div>
     )
